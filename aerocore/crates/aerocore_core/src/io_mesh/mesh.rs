@@ -85,6 +85,7 @@ impl From<std::io::Error> for MeshError {
 /// - SIMD-friendly iteration
 /// - Direct GPU buffer upload
 /// - Cache-efficient sequential access
+#[derive(Debug)]
 pub struct SoaMesh {
     /// Vertex X coordinates.
     pub vertices_x: Vec<f64>,
