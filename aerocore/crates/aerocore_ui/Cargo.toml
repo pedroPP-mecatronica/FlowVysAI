@@ -1,0 +1,10 @@
+[package]
+name = "aerocore_ui"
+description = "AeroCore CFD Engine — Frontend UI and 3D visualization"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+aerocore_core = { path = "../aerocore_core" }
