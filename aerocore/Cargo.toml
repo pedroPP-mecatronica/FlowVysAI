@@ -35,3 +35,9 @@ tracing = "0.1"
 
 # Benchmarking
 criterion = { version = "0.5", features = ["html_reports"] }
+
+# Parsing
+nom = "7.1"
+
+# Memory-mapped I/O
+memmap2 = "0.9"
