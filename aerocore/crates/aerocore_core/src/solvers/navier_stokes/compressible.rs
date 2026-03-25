@@ -6,6 +6,12 @@ pub struct CompressibleNsSolver {
     _timestep: u64, // Adicionado underline para evitar warning
 }
 
+impl Default for CompressibleNsSolver {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CompressibleNsSolver {
     pub fn new() -> Self { 
         Self { initialized: false, _timestep: 0 } 

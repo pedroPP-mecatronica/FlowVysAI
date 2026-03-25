@@ -276,7 +276,7 @@ pub fn parse_stl_ascii(data: &[u8]) -> Result<SoaMesh, MeshError> {
             }
             "facet" => {
                 // "facet normal nx ny nz"
-                if tokens.len() < 5 || tokens[1].to_ascii_lowercase() != "normal" {
+                if tokens.len() < 5 || !tokens[1].eq_ignore_ascii_case("normal") {
                     return Err(MeshError::ParseError {
                         line: line_num,
                         message: "Expected 'facet normal nx ny nz'".into(),

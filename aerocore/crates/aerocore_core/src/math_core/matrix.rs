@@ -23,6 +23,7 @@ pub struct Mat3x3<T: FloatPrecision> {
 impl<T: FloatPrecision> Mat3x3<T> {
     /// Creates a matrix from 9 elements in row-major order.
     #[inline]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         m00: T, m01: T, m02: T,
         m10: T, m11: T, m12: T,
@@ -152,7 +153,7 @@ impl<T: FloatPrecision> Mat3x3<T> {
     pub fn scale(&self, scalar: T) -> Self {
         let mut result = *self;
         for v in &mut result.data {
-            *v = *v * scalar;
+            *v *= scalar;
         }
         result
     }
