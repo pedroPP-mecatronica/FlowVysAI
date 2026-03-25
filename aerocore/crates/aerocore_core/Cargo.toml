@@ -16,16 +16,17 @@ crossbeam = { workspace = true }
 serde = { workspace = true }
 tracing = { workspace = true }
 approx = { workspace = true }
-nom = "7"
-memmap2 = "0.9"
+nom = { workspace = true }
+memmap2 = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true }
+tempfile = "3"
 
 [[bench]]
 name = "memory_bench"
 harness = false
 
 [[bench]]
-name = "stl_binary"
+name = "stl_bench"
 harness = false

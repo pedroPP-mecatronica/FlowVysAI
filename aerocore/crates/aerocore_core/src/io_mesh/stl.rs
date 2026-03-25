@@ -26,6 +26,12 @@
 //! endsolid <name>
 //! ```
 //!
+//! # Binary parsing strategy
+//! Binary STL files are parsed from a `&[u8]` using [`nom`] combinators
+//! (zero-copy, streaming-friendly).  When loading from disk, [`memmap2`] is
+//! used so the OS page cache backs the slice — **no whole-file `Vec<u8>`
+//! allocation** for the binary path.
+//!
 //! # Note on Vertex Deduplication
 //! For simplicity and performance, vertices are stored without deduplication.
 //! Each triangle contributes 3 unique vertex entries.  Deduplication can be
@@ -33,19 +39,47 @@
 
 use std::io;
 
+use memmap2::Mmap;
+use nom::{
+    bytes::complete::take,
+    combinator::map,
+    multi::count,
+    number::complete::le_f32,
+    sequence::tuple,
+    IResult,
+};
+
 use super::mesh::{MeshError, MeshFormat, MeshInfo, SoaMesh};
 
 // ── binary constants ──────────────────────────────────────────────────────────
 const HEADER_BYTES: usize = 80;
 const BINARY_TRIANGLE_BYTES: usize = 50; // 12 normal + 36 verts + 2 attr
 
-// ── helpers ───────────────────────────────────────────────────────────────────
+// ── nom parsers ───────────────────────────────────────────────────────────────
 
-/// Reads a little-endian `f32` from a 4-byte slice.
-#[inline(always)]
-fn read_f32_le(buf: &[u8]) -> f32 {
-    f32::from_le_bytes([buf[0], buf[1], buf[2], buf[3]])
+/// `(normal, [v0, v1, v2])` returned by [`parse_triangle`].
+type TriangleRecord = ([f32; 3], [[f32; 3]; 3]);
+
+/// Parses three consecutive little-endian `f32` values from the input.
+#[inline]
+fn parse_vec3(input: &[u8]) -> IResult<&[u8], [f32; 3]> {
+    map(tuple((le_f32, le_f32, le_f32)), |(x, y, z)| [x, y, z])(input)
 }
+
+/// Parses one binary STL triangle record (50 bytes) and returns
+/// `(normal [f32;3], [v0, v1, v2] [[f32;3];3])`.
+#[inline]
+fn parse_triangle(input: &[u8]) -> IResult<&[u8], TriangleRecord> {
+    let (input, normal) = parse_vec3(input)?;
+    let (input, v0) = parse_vec3(input)?;
+    let (input, v1) = parse_vec3(input)?;
+    let (input, v2) = parse_vec3(input)?;
+    // attribute byte count (2 bytes) — ignored
+    let (input, _) = take(2usize)(input)?;
+    Ok((input, (normal, [v0, v1, v2])))
+}
+
+// ── helpers ───────────────────────────────────────────────────────────────────
 
 /// Reads a little-endian `u32` from a 4-byte slice.
 #[inline(always)]
@@ -130,20 +164,36 @@ pub fn parse_stl(data: &[u8]) -> Result<SoaMesh, MeshError> {
 }
 
 /// Loads an STL file from disk and parses it.
+///
+/// For binary STL files the file is **memory-mapped** via [`memmap2`], so the
+/// OS page cache backs the parse slice — no whole-file allocation.  ASCII STL
+/// files are read into a `Vec<u8>` as before.
 pub fn load_stl(path: &std::path::Path) -> Result<SoaMesh, MeshError> {
-    let data = std::fs::read(path).map_err(|e| {
+    // Open the file first so we can mmap it.
+    let file = std::fs::File::open(path).map_err(|e| {
         if e.kind() == io::ErrorKind::NotFound {
             MeshError::FileNotFound(path.display().to_string())
         } else {
             MeshError::IoError(e)
         }
     })?;
-    parse_stl(&data)
+
+    // Safety: the file is not modified while we hold the mapping.
+    // This is the standard memmap2 usage pattern for read-only parsing.
+    let mmap = unsafe { Mmap::map(&file) }.map_err(MeshError::IoError)?;
+
+    parse_stl(&mmap)
 }
 
 // ── binary parser ─────────────────────────────────────────────────────────────
 
-/// Parses a binary STL from a raw byte slice.
+/// Parses a binary STL from a raw byte slice using [`nom`] combinators.
+///
+/// The slice may be backed by a memory-mapped file (`memmap2::Mmap`) for
+/// zero-copy parsing of large meshes.
+///
+/// # Errors
+/// - [`MeshError::ParseError`] — header/count field missing, or file truncated.
 pub fn parse_stl_binary(data: &[u8]) -> Result<SoaMesh, MeshError> {
     // Minimum valid binary STL: 80-byte header + 4-byte count
     if data.len() < HEADER_BYTES + 4 {
@@ -170,6 +220,7 @@ pub fn parse_stl_binary(data: &[u8]) -> Result<SoaMesh, MeshError> {
         });
     }
 
+    // Pre-allocate SoA buffers — single allocation per array.
     let mut vertices_x = Vec::with_capacity(num_triangles * 3);
     let mut vertices_y = Vec::with_capacity(num_triangles * 3);
     let mut vertices_z = Vec::with_capacity(num_triangles * 3);
@@ -178,40 +229,30 @@ pub fn parse_stl_binary(data: &[u8]) -> Result<SoaMesh, MeshError> {
     let mut normals_z  = Vec::with_capacity(num_triangles);
     let mut face_indices: Vec<u32> = Vec::with_capacity(num_triangles * 3);
 
-    let mut offset = HEADER_BYTES + 4;
+    // nom parse — operates on the triangle payload slice only.
+    let payload = &data[HEADER_BYTES + 4..];
+    let (_, triangles) = count(parse_triangle, num_triangles)(payload)
+        .map_err(|e| MeshError::ParseError {
+            line: 0,
+            message: format!("nom parse error in binary STL triangles: {e}"),
+        })?;
 
-    for _tri in 0..num_triangles {
-        let tri = &data[offset..offset + BINARY_TRIANGLE_BYTES];
+    for (tri_idx, (normal, verts)) in triangles.into_iter().enumerate() {
+        let base_idx = (tri_idx * 3) as u32;
 
-        // Normal (3 × f32 little-endian)
-        normals_x.push(read_f32_le(&tri[0..4])  as f64);
-        normals_y.push(read_f32_le(&tri[4..8])  as f64);
-        normals_z.push(read_f32_le(&tri[8..12]) as f64);
+        normals_x.push(normal[0] as f64);
+        normals_y.push(normal[1] as f64);
+        normals_z.push(normal[2] as f64);
 
-        // Vertex 0
-        let base_idx = vertices_x.len() as u32;
-        vertices_x.push(read_f32_le(&tri[12..16]) as f64);
-        vertices_y.push(read_f32_le(&tri[16..20]) as f64);
-        vertices_z.push(read_f32_le(&tri[20..24]) as f64);
+        for v in &verts {
+            vertices_x.push(v[0] as f64);
+            vertices_y.push(v[1] as f64);
+            vertices_z.push(v[2] as f64);
+        }
 
-        // Vertex 1
-        vertices_x.push(read_f32_le(&tri[24..28]) as f64);
-        vertices_y.push(read_f32_le(&tri[28..32]) as f64);
-        vertices_z.push(read_f32_le(&tri[32..36]) as f64);
-
-        // Vertex 2
-        vertices_x.push(read_f32_le(&tri[36..40]) as f64);
-        vertices_y.push(read_f32_le(&tri[40..44]) as f64);
-        vertices_z.push(read_f32_le(&tri[44..48]) as f64);
-
-        // Face index triple
         face_indices.push(base_idx);
         face_indices.push(base_idx + 1);
         face_indices.push(base_idx + 2);
-
-        // attr byte count at tri[48..50] — ignored
-
-        offset += BINARY_TRIANGLE_BYTES;
     }
 
     let (bb_min, bb_max) = compute_bounding_box(&vertices_x, &vertices_y, &vertices_z);
@@ -564,6 +605,89 @@ endsolid cube_face
         let data = single_triangle_binary();
         let mesh = parse_stl(&data).unwrap();
         assert_eq!(mesh.info.format, MeshFormat::StlBinary);
+    }
+
+    // ── nom binary parser tests ───────────────────────────────────────────────
+
+    /// Builds a binary STL blob with `n` identical triangles for testing.
+    fn multi_triangle_binary(n: usize) -> Vec<u8> {
+        let mut buf = vec![0u8; 80]; // header
+        buf.extend_from_slice(&(n as u32).to_le_bytes());
+        for i in 0..n {
+            let fi = i as f32;
+            // normal (0, 0, 1)
+            buf.extend_from_slice(&0.0_f32.to_le_bytes());
+            buf.extend_from_slice(&0.0_f32.to_le_bytes());
+            buf.extend_from_slice(&1.0_f32.to_le_bytes());
+            // v0
+            buf.extend_from_slice(&fi.to_le_bytes());
+            buf.extend_from_slice(&0.0_f32.to_le_bytes());
+            buf.extend_from_slice(&0.0_f32.to_le_bytes());
+            // v1
+            buf.extend_from_slice(&(fi + 1.0_f32).to_le_bytes());
+            buf.extend_from_slice(&0.0_f32.to_le_bytes());
+            buf.extend_from_slice(&0.0_f32.to_le_bytes());
+            // v2
+            buf.extend_from_slice(&fi.to_le_bytes());
+            buf.extend_from_slice(&1.0_f32.to_le_bytes());
+            buf.extend_from_slice(&0.0_f32.to_le_bytes());
+            // attribute
+            buf.extend_from_slice(&0u16.to_le_bytes());
+        }
+        buf
+    }
+
+    #[test]
+    fn test_nom_binary_multi_triangle_vertex_count() {
+        let n = 7;
+        let data = multi_triangle_binary(n);
+        let mesh = parse_stl_binary(&data).expect("parse_stl_binary failed");
+        assert_eq!(mesh.num_faces(), n, "expected {n} faces");
+        assert_eq!(mesh.num_vertices(), n * 3, "expected {} vertices", n * 3);
+        assert_eq!(mesh.face_indices.len(), n * 3);
+    }
+
+    #[test]
+    fn test_nom_binary_bounding_box_multi() {
+        // 5 triangles with v0.x = 0..4, v1.x = 1..5 → x range [0, 5)
+        let n = 5;
+        let data = multi_triangle_binary(n);
+        let mesh = parse_stl_binary(&data).unwrap();
+        let info = &mesh.info;
+        assert!((info.bounding_box_min[0] - 0.0).abs() < 1e-6,
+            "x_min should be 0, got {}", info.bounding_box_min[0]);
+        assert!((info.bounding_box_max[0] - (n as f64)).abs() < 1e-5,
+            "x_max should be {n}, got {}", info.bounding_box_max[0]);
+        assert!((info.bounding_box_max[1] - 1.0).abs() < 1e-6,
+            "y_max should be 1.0, got {}", info.bounding_box_max[1]);
+    }
+
+    // ── mmap-based path tests ─────────────────────────────────────────────────
+
+    /// Tests that `load_stl` (which uses memmap2 internally) produces the same
+    /// mesh as parsing the same bytes directly.
+    #[test]
+    fn test_load_stl_mmap_binary_matches_parse() {
+        use std::io::Write;
+        let data = multi_triangle_binary(4);
+
+        // Write to a temp file.
+        let mut tmp = tempfile::NamedTempFile::new()
+            .expect("could not create temp file");
+        tmp.write_all(&data).expect("write failed");
+        tmp.flush().expect("flush failed");
+
+        let mesh_from_file = load_stl(tmp.path()).expect("load_stl failed");
+        let mesh_from_bytes = parse_stl_binary(&data).expect("parse_stl_binary failed");
+
+        assert_eq!(mesh_from_file.num_faces(), mesh_from_bytes.num_faces());
+        assert_eq!(mesh_from_file.num_vertices(), mesh_from_bytes.num_vertices());
+        assert_eq!(mesh_from_file.face_indices, mesh_from_bytes.face_indices);
+        for i in 0..mesh_from_file.num_vertices() {
+            assert!((mesh_from_file.vertices_x[i] - mesh_from_bytes.vertices_x[i]).abs() < 1e-10);
+            assert!((mesh_from_file.vertices_y[i] - mesh_from_bytes.vertices_y[i]).abs() < 1e-10);
+            assert!((mesh_from_file.vertices_z[i] - mesh_from_bytes.vertices_z[i]).abs() < 1e-10);
+        }
     }
 
     // ── MeshProvider trait ────────────────────────────────────────────────────
