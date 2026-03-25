@@ -1,0 +1,65 @@
+name: "🔬 Research / Tech Decision"
+description: >
+  Investigate a technology choice, algorithm variant, or external library
+  and produce an Architecture Decision Record (ADR).
+labels: ["type:research"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template when the team needs to make or revisit a technology
+        decision.  The expected output is a new ADR file under `docs/adr/`.
+        **Do not wait for the user to choose** — gather data from public sources
+        (crates.io, benchmarks, papers) and propose the best default option.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: >
+        What problem are we trying to solve?
+        Why does a decision need to be made now?
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Research Question
+      description: >
+        The specific question to answer (e.g. "Which Rust crate should we use
+        for binary STL parsing with zero-copy semantics?").
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: >
+        What must the ADR include to close this issue?
+      placeholder: |
+        - [ ] ADR `docs/adr/000X-<slug>.md` created with context, decision,
+              alternatives, consequences, references
+        - [ ] Decision implemented (or planned in a follow-up issue)
+    validations:
+      required: true
+
+  - type: textarea
+    id: test_plan
+    attributes:
+      label: Test Plan
+      description: >
+        How will the chosen option be validated (benchmark, prototype, CI)?
+    validations:
+      required: true
+
+  - type: textarea
+    id: windows
+    attributes:
+      label: Windows Considerations
+      description: >
+        Is the technology cross-platform?  Any Windows caveats?
+        Write "N/A" if none.
+    validations:
+      required: true

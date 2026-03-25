@@ -1,0 +1,68 @@
+name: "✨ Feature Request"
+description: Propose a new capability or enhancement for FlowVysAI.
+labels: ["type:feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to propose a new feature.
+        Be as specific as possible so the implementation can go straight into a PR.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: >
+        What is the engineering or academic need that motivates this feature?
+        Which sprint or milestone does it belong to?
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: >
+        List concrete, testable conditions that must be true when the feature is done.
+        Use checkboxes.
+      placeholder: |
+        - [ ] `cargo test` includes a test that exercises the new path
+        - [ ] CLI command `--foo` produces output matching expected format
+    validations:
+      required: true
+
+  - type: textarea
+    id: test_plan
+    attributes:
+      label: Test Plan
+      description: >
+        Describe the unit tests, integration tests, and/or manual steps
+        that will validate this feature.
+    validations:
+      required: true
+
+  - type: textarea
+    id: windows
+    attributes:
+      label: Windows Considerations
+      description: >
+        Any Windows-specific behaviour to handle (paths, line endings, APIs, CI).
+        Write "N/A" if none.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: sprint
+    attributes:
+      label: Sprint
+      options:
+        - S2 – STL IO & Mesh
+        - S3 – LBM 2D Core (D2Q9)
+        - S4 – Boundary Conditions 2D
+        - S5 – LBM 3D Pipeline (D3Q19)
+        - S6 – Performance & Benchmarks
+        - S7 – Thermal / Environment
+        - S8 – Productization & Docs
+        - Backlog
+    validations:
+      required: true

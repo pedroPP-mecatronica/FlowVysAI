@@ -1,0 +1,85 @@
+name: "🐛 Bug Report"
+description: Report incorrect behaviour or a crash in FlowVysAI.
+labels: ["type:bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please fill in as much detail as possible so the bug can be reproduced and fixed.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: >
+        What were you trying to do?
+        Which module/solver/command is affected?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: >
+        Minimal steps to reproduce the bug.
+      placeholder: |
+        1. Run `cargo run -- --case cases/2d_lid.toml`
+        2. Observe panic at step 10
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behaviour
+      description: Paste error messages, panic output, or wrong results.
+    validations:
+      required: true
+
+  - type: textarea
+    id: test_plan
+    attributes:
+      label: Acceptance Criteria / Test Plan
+      description: >
+        How will we know the bug is fixed?
+        Describe the regression test that must be added.
+    validations:
+      required: true
+
+  - type: textarea
+    id: windows
+    attributes:
+      label: Windows Considerations
+      description: >
+        Is this reproducible on Windows?  Any platform-specific aspect?
+        Write "N/A" if none.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      multiple: true
+      options:
+        - Linux
+        - Windows
+        - macOS
+    validations:
+      required: true
+
+  - type: input
+    id: rust_version
+    attributes:
+      label: Rust Version
+      description: Output of `rustc --version`
+    validations:
+      required: true
