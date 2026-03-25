@@ -80,7 +80,7 @@ impl<T: Copy, const ALIGN: usize> AlignedVec<T, ALIGN> {
             return Self::new(0, unsafe { std::mem::zeroed() });
         }
 
-        let mut vec = Self::new(data.len(), data[0]);
+        let vec = Self::new(data.len(), data[0]);
         // SAFETY: both src and dst are valid for data.len() elements
         unsafe {
             std::ptr::copy_nonoverlapping(data.as_ptr(), vec.ptr, data.len());

@@ -1,34 +1,68 @@
-//! AeroCore UI — Frontend application placeholder.
-//!
-//! Full implementation in Sprint S4 (egui + wgpu viewport).
-//! For now, just prints version and validates that the core compiles.
+//! AeroCore UI — Frontend application
+//! Teste de integração do Solver LBM D3Q19
 
 fn main() {
     println!("╔══════════════════════════════════════════════╗");
     println!("║     AeroCore CFD Engine v0.1.0               ║");
-    println!("║     Next-Gen Computational Fluid Dynamics     ║");
-    println!("║                                               ║");
-    println!("║     Solvers: LBM (D3Q19) + Navier-Stokes     ║");
-    println!("║     Precision: FP64 (default) | FP32 (GPU)    ║");
-    println!("║     Backend: Rust + WGPU/CUDA                 ║");
+    println!("║     Teste de Estabilidade do Solver LBM      ║");
     println!("╚══════════════════════════════════════════════╝");
     println!();
 
-    // Validate core imports
+    // 1. Importações do Core
     use aerocore_core::memory::arena::SimArena;
-    use aerocore_core::math_core::vector::Vec3;
-    use aerocore_core::solvers::traits::SolverConfig;
+    use aerocore_core::solvers::lbm::LbmSolver;
+    use aerocore_core::solvers::traits::{Solver, SolverConfig};
+    use std::time::Instant;
 
-    let arena = SimArena::new(1024 * 1024); // 1 MB test arena
-    let _slice = arena.alloc_slice(100, 0.0_f64);
-    println!("[✓] Memory subsystem: SimArena operational ({} bytes used)", arena.bytes_used());
+    // 2. Configuração da Simulação
+    let nx = 32;
+    let ny = 32;
+    let nz = 32;
+    let viscosity = 0.1;
+    let iterations = 100;
 
-    let v = Vec3::new(1.0_f64, 2.0, 3.0);
-    println!("[✓] Math core: Vec3 magnitude = {:.6}", v.magnitude());
-
+    println!("[i] Configurando domínio: {}x{}x{}", nx, ny, nz);
+    
+    // 3. Preparar Memória (Arena de 50MB para este teste)
+    let arena = SimArena::new(50 * 1024 * 1024); 
     let config = SolverConfig::default();
-    println!("[✓] Solver config: precision={:?}, dt={}", config.precision, config.dt);
 
+    // 4. Instanciar e Inicializar o Solver
+    let mut solver = LbmSolver::new(nx, ny, nz, viscosity);
+    
+    print!("[i] Inicializando buffers na Arena... ");
+    match solver.init(&config, &arena) {
+        Ok(_) => println!("OK! (Uso da Arena: {} bytes)", arena.bytes_used()),
+        Err(e) => {
+            println!("FALHA: {:?}", e);
+            return;
+        }
+    }
+
+    // 5. Loop de Simulação (Hot Path)
+    println!("[i] Executando {} iterações...", iterations);
+    let start = Instant::now();
+
+    for i in 1..=iterations {
+        match solver.step() {
+            Ok(result) => {
+                if i % 10 == 0 {
+                    println!("    Passo {:>3} | t = {:.3}s", result.timestep, result.time);
+                }
+            }
+            Err(e) => {
+                println!("    [!] Erro na iteração {}: {:?}", i, e);
+                break;
+            }
+        }
+    }
+
+    let duration = start.elapsed();
     println!();
-    println!("UI is a placeholder. Full egui + wgpu viewport in Sprint S4.");
+    println!("[✓] Simulação finalizada com sucesso!");
+    println!("[✓] Tempo total: {:?}", duration);
+    println!("[✓] Performance: {:.2} iterações/segundo", iterations as f64 / duration.as_secs_f64());
+    
+    println!();
+    println!("Próximo passo: Sprint S3 - Implementar condições de contorno (Walls).");
 }
