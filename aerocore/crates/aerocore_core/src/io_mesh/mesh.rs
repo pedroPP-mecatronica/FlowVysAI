@@ -62,8 +62,9 @@ impl std::fmt::Display for MeshError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::FileNotFound(p) => write!(f, "Mesh file not found: {}", p),
-            Self::ParseError { line, message } =>
-                write!(f, "Parse error at line {}: {}", line, message),
+            Self::ParseError { line, message } => {
+                write!(f, "Parse error at line {}: {}", line, message)
+            }
             Self::UnsupportedFormat(fmt) => write!(f, "Unsupported mesh format: {}", fmt),
             Self::IoError(e) => write!(f, "I/O error: {}", e),
         }

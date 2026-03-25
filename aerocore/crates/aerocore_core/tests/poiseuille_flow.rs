@@ -60,9 +60,7 @@ fn poiseuille_flow_analytical_validation() {
 
     let mut solver: LbmSolver<f64> = LbmSolver::new(NX, NY, NZ, VISCOSITY);
 
-    solver
-        .init(&config, &arena)
-        .expect("LBM init failed");
+    solver.init(&config, &arena).expect("LBM init failed");
 
     // ── run iterations ────────────────────────────────────────────────────────
     for _ in 0..ITERATIONS {
@@ -82,7 +80,7 @@ fn poiseuille_flow_analytical_validation() {
     //
     // Reference: Krüger et al. (2017), Eq. 5.37
     let nu = VISCOSITY;
-    let f  = BODY_FORCE;
+    let f = BODY_FORCE;
     let ny_f = NY as f64;
 
     // Maximum relative error over all interior nodes
@@ -90,11 +88,10 @@ fn poiseuille_flow_analytical_validation() {
     // wall position by 0.5 lattice units, so small domains show ~5% error.
     let tolerance = 0.10; // 10%
     let mut max_rel_err = 0.0_f64;
-    for j in 1..(NY - 1) {
+    for (j, &u_lbm) in ux_profile.iter().enumerate().skip(1).take(NY - 2) {
         let y = j as f64;
         // Half-way bounce-back analytical formula
         let u_analytical = (f / (2.0 * nu)) * (y + 0.5) * (ny_f - 0.5 - y);
-        let u_lbm = ux_profile[j];
 
         if u_analytical.abs() > 1e-15 {
             let rel_err = ((u_lbm - u_analytical) / u_analytical).abs();

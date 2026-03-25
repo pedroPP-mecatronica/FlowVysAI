@@ -1,17 +1,17 @@
-pub mod d3q19;
-pub mod collision;
-pub mod streaming;
 pub mod boundary;
+pub mod collision;
+pub mod d3q19;
+pub mod streaming;
 
-use crate::memory::arena::SimArena;
 use crate::math_core::precision::FloatPrecision;
+use crate::memory::arena::SimArena;
 use crate::solvers::traits::*;
 
 pub struct LbmSolver<'a, T: FloatPrecision> {
     nx: usize,
     ny: usize,
     nz: usize,
-    _tau: T,        // Adicionado underline para evitar warning
+    _tau: T, // Adicionado underline para evitar warning
     omega: T,
     f_in: Vec<&'a mut [T]>,
     f_out: Vec<&'a mut [T]>,
@@ -32,13 +32,17 @@ impl<'a, T: FloatPrecision> LbmSolver<'a, T> {
         let half = T::from_f64(0.5).unwrap();
         let tau = three * viscosity + half;
         Self {
-            nx, ny, nz,
+            nx,
+            ny,
+            nz,
             _tau: tau,
             omega: T::ONE / tau,
             f_in: Vec::with_capacity(d3q19::Q),
             f_out: Vec::with_capacity(d3q19::Q),
             rho: &mut [],
-            u_x: &mut [], u_y: &mut [], u_z: &mut [],
+            u_x: &mut [],
+            u_y: &mut [],
+            u_z: &mut [],
             is_boundary: Vec::new(),
             timestep: 0,
             initialized: false,
@@ -113,22 +117,17 @@ impl<'a, T: FloatPrecision> LbmSolver<'a, T> {
     ///   F_i = wᵢ (1 − ω/2) [ (eᵢ·F − u·F)/cs² + (eᵢ·u)(eᵢ·F)/cs⁴ ]
     ///
     /// Reference: Krüger et al. (2017), Eq. 5.14
-    pub fn step_with_body_force(
-        &mut self,
-        fx: T,
-        fy: T,
-        fz: T,
-    ) -> Result<StepResult, SolverError> {
+    pub fn step_with_body_force(&mut self, fx: T, fy: T, fz: T) -> Result<StepResult, SolverError> {
         if !self.initialized {
             return Err(SolverError::InitializationFailed("not initialized".into()));
         }
 
         let q = d3q19::Q;
-        let cs2       = T::from_f64(d3q19::CS2).unwrap(); // 1/3
-        let inv_cs2   = T::ONE / cs2;                      // 3
-        let inv_cs4   = inv_cs2 * inv_cs2;                 // 9
-        let inv_2cs4  = inv_cs4 / T::TWO;                  // 9/2
-        let inv_2cs2  = inv_cs2 / T::TWO;                  // 3/2
+        let cs2 = T::from_f64(d3q19::CS2).unwrap(); // 1/3
+        let inv_cs2 = T::ONE / cs2; // 3
+        let inv_cs4 = inv_cs2 * inv_cs2; // 9
+        let inv_2cs4 = inv_cs4 / T::TWO; // 9/2
+        let inv_2cs2 = inv_cs2 / T::TWO; // 3/2
         let half_omega = T::from_f64(0.5).unwrap() * self.omega;
 
         // Zero output buffer
@@ -150,7 +149,7 @@ impl<'a, T: FloatPrecision> LbmSolver<'a, T> {
                     let mut uz = T::ZERO;
                     for i in 0..q {
                         let fi = self.f_in[i][idx];
-                        r  += fi;
+                        r += fi;
                         ux += T::from_i32(d3q19::E[i][0]).unwrap() * fi;
                         uy += T::from_i32(d3q19::E[i][1]).unwrap() * fi;
                         uz += T::from_i32(d3q19::E[i][2]).unwrap() * fi;
@@ -161,7 +160,11 @@ impl<'a, T: FloatPrecision> LbmSolver<'a, T> {
                     uz *= inv_r;
 
                     // Guo: effective velocity = u + F/(2ρ)
-                    let inv_2r = if r > T::ZERO { T::ONE / (T::TWO * r) } else { T::ZERO };
+                    let inv_2r = if r > T::ZERO {
+                        T::ONE / (T::TWO * r)
+                    } else {
+                        T::ZERO
+                    };
                     let ux_eff = ux + fx * inv_2r;
                     let uy_eff = uy + fy * inv_2r;
                     let uz_eff = uz + fz * inv_2r;
@@ -176,29 +179,27 @@ impl<'a, T: FloatPrecision> LbmSolver<'a, T> {
 
                     for i in 0..q {
                         let ei = d3q19::E[i];
-                        let wi  = T::from_f64(d3q19::W[i]).unwrap();
+                        let wi = T::from_f64(d3q19::W[i]).unwrap();
                         let eix = T::from_i32(ei[0]).unwrap();
                         let eiy = T::from_i32(ei[1]).unwrap();
                         let eiz = T::from_i32(ei[2]).unwrap();
 
                         let ei_dot_u = eix * ux_eff + eiy * uy_eff + eiz * uz_eff;
-                        let ei_dot_f = eix * fx     + eiy * fy     + eiz * fz;
+                        let ei_dot_f = eix * fx + eiy * fy + eiz * fz;
 
                         // BGK equilibrium with effective velocity
-                        let feq = wi * r * (T::ONE
-                            + ei_dot_u * inv_cs2
-                            + ei_dot_u * ei_dot_u * inv_2cs4
-                            - u_sq * inv_2cs2);
+                        let feq = wi
+                            * r
+                            * (T::ONE + ei_dot_u * inv_cs2 + ei_dot_u * ei_dot_u * inv_2cs4
+                                - u_sq * inv_2cs2);
 
                         // Guo forcing distribution (Krüger Eq. 5.14)
-                        let fi_force = wi * (T::ONE - half_omega) * (
-                            (ei_dot_f - u_dot_f) * inv_cs2
-                            + ei_dot_u * ei_dot_f * inv_cs4
-                        );
+                        let fi_force = wi
+                            * (T::ONE - half_omega)
+                            * ((ei_dot_f - u_dot_f) * inv_cs2 + ei_dot_u * ei_dot_f * inv_cs4);
 
-                        let f_post = self.f_in[i][idx]
-                            - self.omega * (self.f_in[i][idx] - feq)
-                            + fi_force;
+                        let f_post =
+                            self.f_in[i][idx] - self.omega * (self.f_in[i][idx] - feq) + fi_force;
 
                         // Streaming: periodic in x/z, bounce-back in y
                         let nx_new = (x as i32 + ei[0]).rem_euclid(self.nx as i32) as usize;
@@ -228,8 +229,8 @@ impl<'a, T: FloatPrecision> LbmSolver<'a, T> {
         self.timestep += 1;
         Ok(StepResult {
             timestep: self.timestep,
-            time:      self.timestep as f64,
-            dt:        1.0,
+            time: self.timestep as f64,
+            dt: 1.0,
             residual_l2: 0.0,
             converged: false,
         })
@@ -251,11 +252,11 @@ impl<'a, T: FloatPrecision> LbmSolver<'a, T> {
         }
 
         let q = d3q19::Q;
-        let cs2      = T::from_f64(d3q19::CS2).unwrap();
-        let inv_cs2  = T::ONE / cs2;
+        let cs2 = T::from_f64(d3q19::CS2).unwrap();
+        let inv_cs2 = T::ONE / cs2;
         let inv_2cs2 = T::ONE / (T::TWO * cs2);
         let inv_2cs4 = T::ONE / (T::TWO * cs2 * cs2);
-        let two      = T::TWO;
+        let two = T::TWO;
 
         // Zero output buffer
         for i in 0..q {
@@ -278,7 +279,7 @@ impl<'a, T: FloatPrecision> LbmSolver<'a, T> {
                     let mut uz = T::ZERO;
                     for i in 0..q {
                         let fi = self.f_in[i][idx];
-                        r  += fi;
+                        r += fi;
                         ux += T::from_i32(d3q19::E[i][0]).unwrap() * fi;
                         uy += T::from_i32(d3q19::E[i][1]).unwrap() * fi;
                         uz += T::from_i32(d3q19::E[i][2]).unwrap() * fi;
@@ -296,25 +297,24 @@ impl<'a, T: FloatPrecision> LbmSolver<'a, T> {
                     let u_sq = ux * ux + uy * uy + uz * uz;
 
                     for i in 0..q {
-                        let ei  = d3q19::E[i];
-                        let wi  = T::from_f64(d3q19::W[i]).unwrap();
+                        let ei = d3q19::E[i];
+                        let wi = T::from_f64(d3q19::W[i]).unwrap();
                         let eix = T::from_i32(ei[0]).unwrap();
                         let eiy = T::from_i32(ei[1]).unwrap();
                         let eiz = T::from_i32(ei[2]).unwrap();
 
                         let ei_dot_u = eix * ux + eiy * uy + eiz * uz;
-                        let feq = wi * r * (T::ONE
-                            + ei_dot_u * inv_cs2
-                            + ei_dot_u * ei_dot_u * inv_2cs4
-                            - u_sq * inv_2cs2);
+                        let feq = wi
+                            * r
+                            * (T::ONE + ei_dot_u * inv_cs2 + ei_dot_u * ei_dot_u * inv_2cs4
+                                - u_sq * inv_2cs2);
 
-                        let f_post = self.f_in[i][idx]
-                            - self.omega * (self.f_in[i][idx] - feq);
+                        let f_post = self.f_in[i][idx] - self.omega * (self.f_in[i][idx] - feq);
 
                         // Streaming
-                        let nx_new  = (x as i32 + ei[0]).rem_euclid(self.nx as i32) as usize;
-                        let ny_new  = y as i32 + ei[1];
-                        let nz_new  = (z as i32 + ei[2]).rem_euclid(self.nz as i32) as usize;
+                        let nx_new = (x as i32 + ei[0]).rem_euclid(self.nx as i32) as usize;
+                        let ny_new = y as i32 + ei[1];
+                        let nz_new = (z as i32 + ei[2]).rem_euclid(self.nz as i32) as usize;
 
                         if ny_new < 0 {
                             // No-slip bottom wall (y = 0): standard bounce-back
@@ -345,11 +345,11 @@ impl<'a, T: FloatPrecision> LbmSolver<'a, T> {
         std::mem::swap(&mut self.f_in, &mut self.f_out);
         self.timestep += 1;
         Ok(StepResult {
-            timestep:    self.timestep,
-            time:        self.timestep as f64,
-            dt:          1.0,
+            timestep: self.timestep,
+            time: self.timestep as f64,
+            dt: 1.0,
             residual_l2: 0.0,
-            converged:   false,
+            converged: false,
         })
     }
 }
@@ -365,7 +365,8 @@ impl<'a, T: FloatPrecision> Solver<'a> for LbmSolver<'a, T> {
         for i in 0..d3q19::Q {
             let w = T::from_f64(d3q19::W[i]).unwrap();
             self.f_in.push(arena.alloc_aligned_slice(num_cells, w));
-            self.f_out.push(arena.alloc_aligned_slice(num_cells, T::ZERO));
+            self.f_out
+                .push(arena.alloc_aligned_slice(num_cells, T::ZERO));
         }
         self.rho = arena.alloc_aligned_slice(num_cells, T::ONE);
         self.u_x = arena.alloc_aligned_slice(num_cells, T::ZERO);
@@ -384,10 +385,10 @@ impl<'a, T: FloatPrecision> Solver<'a> for LbmSolver<'a, T> {
             return Err(SolverError::InitializationFailed("Não init".into()));
         }
         let q = d3q19::Q;
-        let cs2      = T::from_f64(d3q19::CS2).unwrap();
+        let cs2 = T::from_f64(d3q19::CS2).unwrap();
         let inv_2cs4 = T::ONE / (T::TWO * cs2 * cs2);
         let inv_2cs2 = T::ONE / (T::TWO * cs2);
-        let inv_cs2  = T::ONE / cs2;
+        let inv_cs2 = T::ONE / cs2;
 
         // Zero output buffer (required for += accumulation and bounce-back)
         for i in 0..q {
@@ -406,7 +407,7 @@ impl<'a, T: FloatPrecision> Solver<'a> for LbmSolver<'a, T> {
                     let mut uz = T::ZERO;
                     for i in 0..q {
                         let fi = self.f_in[i][idx];
-                        r  += fi;
+                        r += fi;
                         ux += T::from_i32(d3q19::E[i][0]).unwrap() * fi;
                         uy += T::from_i32(d3q19::E[i][1]).unwrap() * fi;
                         uz += T::from_i32(d3q19::E[i][2]).unwrap() * fi;
@@ -423,17 +424,15 @@ impl<'a, T: FloatPrecision> Solver<'a> for LbmSolver<'a, T> {
 
                     let u_sq = ux * ux + uy * uy + uz * uz;
                     for i in 0..q {
-                        let ei  = d3q19::E[i];
-                        let wi  = T::from_f64(d3q19::W[i]).unwrap();
+                        let ei = d3q19::E[i];
+                        let wi = T::from_f64(d3q19::W[i]).unwrap();
                         let dot = T::from_i32(ei[0]).unwrap() * ux
-                                + T::from_i32(ei[1]).unwrap() * uy
-                                + T::from_i32(ei[2]).unwrap() * uz;
-                        let feq = wi * r * (T::ONE
-                            + dot * inv_cs2
-                            + dot * dot * inv_2cs4
-                            - u_sq * inv_2cs2);
-                        let f_post = self.f_in[i][idx]
-                            - self.omega * (self.f_in[i][idx] - feq);
+                            + T::from_i32(ei[1]).unwrap() * uy
+                            + T::from_i32(ei[2]).unwrap() * uz;
+                        let feq = wi
+                            * r
+                            * (T::ONE + dot * inv_cs2 + dot * dot * inv_2cs4 - u_sq * inv_2cs2);
+                        let f_post = self.f_in[i][idx] - self.omega * (self.f_in[i][idx] - feq);
                         // Streaming: periodic in x/y/z with per-cell bounce-back
                         let nx_new = (x as i32 + ei[0]).rem_euclid(self.nx as i32) as usize;
                         let ny_new = (y as i32 + ei[1]).rem_euclid(self.ny as i32) as usize;
@@ -453,17 +452,17 @@ impl<'a, T: FloatPrecision> Solver<'a> for LbmSolver<'a, T> {
         std::mem::swap(&mut self.f_in, &mut self.f_out);
         self.timestep += 1;
         Ok(StepResult {
-            timestep:    self.timestep,
-            time:        self.timestep as f64,
-            dt:          1.0,
+            timestep: self.timestep,
+            time: self.timestep as f64,
+            dt: 1.0,
             residual_l2: 0.0,
-            converged:   false,
+            converged: false,
         })
     }
 
     fn snapshot_field_data(&self, output: &mut FieldDataBuffer) {
         output.num_points = self.nx * self.ny * self.nz;
-        output.pressure   = self.rho.as_ptr() as *const f64;
+        output.pressure = self.rho.as_ptr() as *const f64;
         output.velocity_x = self.u_x.as_ptr() as *const f64;
         output.velocity_y = self.u_y.as_ptr() as *const f64;
         output.velocity_z = self.u_z.as_ptr() as *const f64;

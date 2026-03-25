@@ -91,23 +91,31 @@ fn is_ascii_stl(data: &[u8]) -> bool {
 
 // ── bounding-box helper ───────────────────────────────────────────────────────
 
-fn compute_bounding_box(
-    xs: &[f64],
-    ys: &[f64],
-    zs: &[f64],
-) -> ([f64; 3], [f64; 3]) {
+fn compute_bounding_box(xs: &[f64], ys: &[f64], zs: &[f64]) -> ([f64; 3], [f64; 3]) {
     if xs.is_empty() {
         return ([0.0; 3], [0.0; 3]);
     }
     let mut min = [f64::MAX; 3];
     let mut max = [f64::MIN; 3];
     for (&x, (&y, &z)) in xs.iter().zip(ys.iter().zip(zs.iter())) {
-        if x < min[0] { min[0] = x; }
-        if y < min[1] { min[1] = y; }
-        if z < min[2] { min[2] = z; }
-        if x > max[0] { max[0] = x; }
-        if y > max[1] { max[1] = y; }
-        if z > max[2] { max[2] = z; }
+        if x < min[0] {
+            min[0] = x;
+        }
+        if y < min[1] {
+            min[1] = y;
+        }
+        if z < min[2] {
+            min[2] = z;
+        }
+        if x > max[0] {
+            max[0] = x;
+        }
+        if y > max[1] {
+            max[1] = y;
+        }
+        if z > max[2] {
+            max[2] = z;
+        }
     }
     (min, max)
 }
@@ -165,7 +173,9 @@ pub fn parse_stl_binary(data: &[u8]) -> Result<SoaMesh, MeshError> {
             line: 0,
             message: format!(
                 "Binary STL truncated: expected {} bytes for {} triangles, got {}",
-                expected, num_triangles, data.len()
+                expected,
+                num_triangles,
+                data.len()
             ),
         });
     }
@@ -173,9 +183,9 @@ pub fn parse_stl_binary(data: &[u8]) -> Result<SoaMesh, MeshError> {
     let mut vertices_x = Vec::with_capacity(num_triangles * 3);
     let mut vertices_y = Vec::with_capacity(num_triangles * 3);
     let mut vertices_z = Vec::with_capacity(num_triangles * 3);
-    let mut normals_x  = Vec::with_capacity(num_triangles);
-    let mut normals_y  = Vec::with_capacity(num_triangles);
-    let mut normals_z  = Vec::with_capacity(num_triangles);
+    let mut normals_x = Vec::with_capacity(num_triangles);
+    let mut normals_y = Vec::with_capacity(num_triangles);
+    let mut normals_z = Vec::with_capacity(num_triangles);
     let mut face_indices: Vec<u32> = Vec::with_capacity(num_triangles * 3);
 
     let mut offset = HEADER_BYTES + 4;
@@ -184,8 +194,8 @@ pub fn parse_stl_binary(data: &[u8]) -> Result<SoaMesh, MeshError> {
         let tri = &data[offset..offset + BINARY_TRIANGLE_BYTES];
 
         // Normal (3 × f32 little-endian)
-        normals_x.push(read_f32_le(&tri[0..4])  as f64);
-        normals_y.push(read_f32_le(&tri[4..8])  as f64);
+        normals_x.push(read_f32_le(&tri[0..4]) as f64);
+        normals_y.push(read_f32_le(&tri[4..8]) as f64);
         normals_z.push(read_f32_le(&tri[8..12]) as f64);
 
         // Vertex 0
@@ -248,9 +258,9 @@ pub fn parse_stl_ascii(data: &[u8]) -> Result<SoaMesh, MeshError> {
     let mut vertices_x = Vec::new();
     let mut vertices_y = Vec::new();
     let mut vertices_z = Vec::new();
-    let mut normals_x  = Vec::new();
-    let mut normals_y  = Vec::new();
-    let mut normals_z  = Vec::new();
+    let mut normals_x = Vec::new();
+    let mut normals_y = Vec::new();
+    let mut normals_z = Vec::new();
     let mut face_indices: Vec<u32> = Vec::new();
 
     // State machine
@@ -414,7 +424,7 @@ mod tests {
     /// Builds a minimal binary STL with a single triangle.
     fn single_triangle_binary() -> Vec<u8> {
         let mut buf = vec![0u8; 80]; // header
-        // num_triangles = 1
+                                     // num_triangles = 1
         buf.extend_from_slice(&1u32.to_le_bytes());
 
         // normal (0, 0, 1)

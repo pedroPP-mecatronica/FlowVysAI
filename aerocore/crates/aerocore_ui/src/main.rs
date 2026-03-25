@@ -39,7 +39,13 @@ fn run_benchmark() {
     println!("║     AeroCore LBM Benchmark (--bench)         ║");
     println!("╚══════════════════════════════════════════════╝");
     println!();
-    println!("[i] Grid       : {}×{}×{} ({} cells)", nx, ny, nz, nx * ny * nz);
+    println!(
+        "[i] Grid       : {}×{}×{} ({} cells)",
+        nx,
+        ny,
+        nz,
+        nx * ny * nz
+    );
     println!("[i] Steps      : {}", steps);
     println!("[i] Viscosity  : {}", viscosity);
     println!();

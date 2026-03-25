@@ -69,8 +69,8 @@ impl SimArena {
         let size = count * std::mem::size_of::<T>();
         let align = CACHE_LINE.max(std::mem::align_of::<T>());
 
-        let layout = Layout::from_size_align(size, align)
-            .expect("Invalid layout for aligned allocation");
+        let layout =
+            Layout::from_size_align(size, align).expect("Invalid layout for aligned allocation");
 
         let ptr = self.inner.alloc_layout(layout).as_ptr() as *mut T;
 
