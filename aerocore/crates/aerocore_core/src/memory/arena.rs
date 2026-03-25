@@ -61,6 +61,7 @@ impl SimArena {
     /// # DOD Compliance
     /// Use this for SoA field arrays that will be iterated in tight loops.
     #[inline]
+    #[allow(clippy::mut_from_ref)] // Arena interior-mutability pattern: safe by construction
     pub fn alloc_aligned_slice<T: Copy>(&self, count: usize, value: T) -> &mut [T] {
         use std::alloc::Layout;
         const CACHE_LINE: usize = 64;

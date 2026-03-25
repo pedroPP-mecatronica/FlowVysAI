@@ -19,6 +19,9 @@ pub struct LbmSolver<'a, T: FloatPrecision> {
     u_x: &'a mut [T],
     u_y: &'a mut [T],
     u_z: &'a mut [T],
+    /// Per-cell solid mask.  `true` = solid (bounce-back); `false` = fluid.
+    /// Pre-allocated in `init()`; never grows inside `step*` functions.
+    is_boundary: Vec<bool>,
     timestep: u64,
     initialized: bool,
 }
@@ -36,8 +39,26 @@ impl<'a, T: FloatPrecision> LbmSolver<'a, T> {
             f_out: Vec::with_capacity(d3q19::Q),
             rho: &mut [],
             u_x: &mut [], u_y: &mut [], u_z: &mut [],
+            is_boundary: Vec::new(),
             timestep: 0,
             initialized: false,
+        }
+    }
+
+    /// Overrides the solid-cell mask used for per-cell bounce-back.
+    ///
+    /// `mask[idx]` must be `true` for every solid cell, where
+    /// `idx = (z * ny + y) * nx + x`.  The mask is cloned from the caller's
+    /// `Vec<bool>` so that it can be built from STL geometry
+    /// (see [`crate::io_mesh::voxelize::stl_to_boundary_mask`]).
+    ///
+    /// Call this **after** [`Solver::init`] and **before** the first `step*`.
+    /// The mask length must equal `nx * ny * nz`; a length mismatch is
+    /// silently ignored to keep the hot path allocation-free.
+    pub fn set_boundary_mask(&mut self, mask: Vec<bool>) {
+        let expected = self.nx * self.ny * self.nz;
+        if mask.len() == expected {
+            self.is_boundary = mask;
         }
     }
 
@@ -190,7 +211,13 @@ impl<'a, T: FloatPrecision> LbmSolver<'a, T> {
                             self.f_out[opp][idx] += f_post;
                         } else {
                             let target = self.get_index(nx_new, ny_new as usize, nz_new);
-                            self.f_out[i][target] += f_post;
+                            if self.is_boundary[target] {
+                                // Solid interior cell: per-cell bounce-back
+                                let opp = d3q19::OPPOSITE[i];
+                                self.f_out[opp][idx] += f_post;
+                            } else {
+                                self.f_out[i][target] += f_post;
+                            }
                         }
                     }
                 }
@@ -302,7 +329,13 @@ impl<'a, T: FloatPrecision> LbmSolver<'a, T> {
                             self.f_out[opp][idx] += f_post - correction;
                         } else {
                             let target = self.get_index(nx_new, ny_new as usize, nz_new);
-                            self.f_out[i][target] += f_post;
+                            if self.is_boundary[target] {
+                                // Solid interior cell: per-cell bounce-back
+                                let opp = d3q19::OPPOSITE[i];
+                                self.f_out[opp][idx] += f_post;
+                            } else {
+                                self.f_out[i][target] += f_post;
+                            }
                         }
                     }
                 }
@@ -338,6 +371,10 @@ impl<'a, T: FloatPrecision> Solver<'a> for LbmSolver<'a, T> {
         self.u_x = arena.alloc_aligned_slice(num_cells, T::ZERO);
         self.u_y = arena.alloc_aligned_slice(num_cells, T::ZERO);
         self.u_z = arena.alloc_aligned_slice(num_cells, T::ZERO);
+        // Pre-allocate boundary mask: all fluid by default.
+        // set_boundary_mask() can override this before the first step.
+        self.is_boundary.clear();
+        self.is_boundary.resize(num_cells, false);
         self.initialized = true;
         Ok(())
     }
@@ -351,6 +388,13 @@ impl<'a, T: FloatPrecision> Solver<'a> for LbmSolver<'a, T> {
         let inv_2cs4 = T::ONE / (T::TWO * cs2 * cs2);
         let inv_2cs2 = T::ONE / (T::TWO * cs2);
         let inv_cs2  = T::ONE / cs2;
+
+        // Zero output buffer (required for += accumulation and bounce-back)
+        for i in 0..q {
+            for v in self.f_out[i].iter_mut() {
+                *v = T::ZERO;
+            }
+        }
 
         for z in 0..self.nz {
             for y in 0..self.ny {
@@ -390,11 +434,18 @@ impl<'a, T: FloatPrecision> Solver<'a> for LbmSolver<'a, T> {
                             - u_sq * inv_2cs2);
                         let f_post = self.f_in[i][idx]
                             - self.omega * (self.f_in[i][idx] - feq);
+                        // Streaming: periodic in x/y/z with per-cell bounce-back
                         let nx_new = (x as i32 + ei[0]).rem_euclid(self.nx as i32) as usize;
                         let ny_new = (y as i32 + ei[1]).rem_euclid(self.ny as i32) as usize;
                         let nz_new = (z as i32 + ei[2]).rem_euclid(self.nz as i32) as usize;
                         let target_idx = self.get_index(nx_new, ny_new, nz_new);
-                        self.f_out[i][target_idx] = f_post;
+                        if self.is_boundary[target_idx] {
+                            // Solid neighbor: half-way bounce-back to opposite direction
+                            let opp = d3q19::OPPOSITE[i];
+                            self.f_out[opp][idx] += f_post;
+                        } else {
+                            self.f_out[i][target_idx] += f_post;
+                        }
                     }
                 }
             }
