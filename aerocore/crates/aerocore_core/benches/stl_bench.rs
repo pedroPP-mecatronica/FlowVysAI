@@ -11,8 +11,8 @@
 
 use std::io::Write;
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use aerocore_core::io_mesh::stl::{load_stl, parse_stl_binary};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
