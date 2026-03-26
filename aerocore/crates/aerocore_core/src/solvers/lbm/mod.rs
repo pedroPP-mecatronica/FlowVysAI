@@ -1,6 +1,8 @@
 pub mod boundary;
 pub mod collision;
+pub mod d2q9;
 pub mod d3q19;
+pub mod lbm2d;
 pub mod streaming;
 
 use crate::math_core::precision::FloatPrecision;
