@@ -1,6 +1,6 @@
 # 0002 — Binary STL Parser: memmap2 + nom
 
-**Status:** Accepted
+**Status:** Proposed — implementation planned for Sprint S2
 
 ## Context
 

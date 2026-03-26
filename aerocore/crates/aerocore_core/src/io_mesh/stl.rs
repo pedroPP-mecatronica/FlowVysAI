@@ -424,7 +424,7 @@ mod tests {
     /// Builds a minimal binary STL with a single triangle.
     fn single_triangle_binary() -> Vec<u8> {
         let mut buf = vec![0u8; 80]; // header
-        // num_triangles = 1
+                                     // num_triangles = 1
         buf.extend_from_slice(&1u32.to_le_bytes());
 
         // normal (0, 0, 1)

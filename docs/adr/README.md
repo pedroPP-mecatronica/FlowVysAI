@@ -51,5 +51,5 @@ What becomes easier or harder as a result of this decision?
 | ID   | Title                                          | Status   |
 |------|------------------------------------------------|----------|
 | 0001 | Case configuration format — TOML + serde       | Accepted |
-| 0002 | Binary STL parser — memmap2 + nom              | Accepted |
+| 0002 | Binary STL parser — memmap2 + nom              | Proposed |
 | 0003 | CI matrix — Windows + Ubuntu, fmt/clippy/test  | Accepted |
