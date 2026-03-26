@@ -18,16 +18,7 @@ use std::fmt::{Debug, Display};
 /// Provides associated constants for common values and constrains
 /// the type to be FFI-safe, thread-safe, and SIMD-friendly.
 pub trait FloatPrecision:
-    Float
-    + NumAssign
-    + FromPrimitive
-    + Debug
-    + Display
-    + Send
-    + Sync
-    + Copy
-    + Default
-    + 'static
+    Float + NumAssign + FromPrimitive + Debug + Display + Send + Sync + Copy + Default + 'static
 {
     /// Additive identity: 0.0
     const ZERO: Self;

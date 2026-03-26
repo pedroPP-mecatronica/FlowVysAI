@@ -10,8 +10,8 @@
 //! - **Dual precision**: Generic `FloatPrecision` trait (f64 default, f32 opt-in)
 //! - **GPU-ready**: Abstracted compute backend (WGPU/CUDA/CPU fallback)
 
-pub mod memory;
-pub mod math_core;
-pub mod solvers;
-pub mod io_mesh;
 pub mod gpu_compute;
+pub mod io_mesh;
+pub mod math_core;
+pub mod memory;
+pub mod solvers;

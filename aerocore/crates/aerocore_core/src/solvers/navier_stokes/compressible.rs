@@ -13,8 +13,11 @@ impl Default for CompressibleNsSolver {
 }
 
 impl CompressibleNsSolver {
-    pub fn new() -> Self { 
-        Self { initialized: false, _timestep: 0 } 
+    pub fn new() -> Self {
+        Self {
+            initialized: false,
+            _timestep: 0,
+        }
     }
 }
 
@@ -25,16 +28,20 @@ impl<'a> Solver<'a> for CompressibleNsSolver {
     }
 
     fn step(&mut self) -> Result<StepResult, SolverError> {
-        Ok(StepResult { 
-            timestep: 0, 
-            time: 0.0, 
-            dt: 0.0, 
-            residual_l2: 0.0, 
-            converged: false 
+        Ok(StepResult {
+            timestep: 0,
+            time: 0.0,
+            dt: 0.0,
+            residual_l2: 0.0,
+            converged: false,
         })
     }
 
     fn snapshot_field_data(&self, _output: &mut FieldDataBuffer) {}
-    fn finalize(&mut self) { self.initialized = false; }
-    fn name(&self) -> &'static str { "Compressible Navier-Stokes (Stub)" }
+    fn finalize(&mut self) {
+        self.initialized = false;
+    }
+    fn name(&self) -> &'static str {
+        "Compressible Navier-Stokes (Stub)"
+    }
 }

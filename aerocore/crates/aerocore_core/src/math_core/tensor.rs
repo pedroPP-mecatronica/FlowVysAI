@@ -6,8 +6,8 @@
 //!
 //! Layout: [xx, yy, zz, xy, xz, yz] (Voigt notation)
 
-use crate::math_core::precision::FloatPrecision;
 use crate::math_core::matrix::Mat3x3;
+use crate::math_core::precision::FloatPrecision;
 
 /// Symmetric 3×3 tensor stored in Voigt notation (6 components).
 ///
@@ -36,7 +36,14 @@ impl<T: FloatPrecision> SymmetricTensor3<T> {
     /// Creates a new symmetric tensor from 6 independent components.
     #[inline]
     pub fn new(xx: T, yy: T, zz: T, xy: T, xz: T, yz: T) -> Self {
-        Self { xx, yy, zz, xy, xz, yz }
+        Self {
+            xx,
+            yy,
+            zz,
+            xy,
+            xz,
+            yz,
+        }
     }
 
     /// Zero tensor.
@@ -81,7 +88,9 @@ impl<T: FloatPrecision> SymmetricTensor3<T> {
     /// Where S is the deviatoric tensor. Used in structural/FSI analysis.
     pub fn von_mises(&self) -> T {
         let dev = self.deviatoric();
-        let s_s = dev.xx * dev.xx + dev.yy * dev.yy + dev.zz * dev.zz
+        let s_s = dev.xx * dev.xx
+            + dev.yy * dev.yy
+            + dev.zz * dev.zz
             + T::TWO * (dev.xy * dev.xy + dev.xz * dev.xz + dev.yz * dev.yz);
         let three_half = (T::ONE + T::ONE + T::ONE) / T::TWO;
         (three_half * s_s).sqrt()
@@ -92,7 +101,9 @@ impl<T: FloatPrecision> SymmetricTensor3<T> {
     /// For symmetric tensors: A:B = xx*xx + yy*yy + zz*zz + 2*(xy*xy + xz*xz + yz*yz)
     #[inline]
     pub fn double_contraction(&self, other: &Self) -> T {
-        self.xx * other.xx + self.yy * other.yy + self.zz * other.zz
+        self.xx * other.xx
+            + self.yy * other.yy
+            + self.zz * other.zz
             + T::TWO * (self.xy * other.xy + self.xz * other.xz + self.yz * other.yz)
     }
 
@@ -100,9 +111,7 @@ impl<T: FloatPrecision> SymmetricTensor3<T> {
     #[inline]
     pub fn to_mat3x3(&self) -> Mat3x3<T> {
         Mat3x3::new(
-            self.xx, self.xy, self.xz,
-            self.xy, self.yy, self.yz,
-            self.xz, self.yz, self.zz,
+            self.xx, self.xy, self.xz, self.xy, self.yy, self.yz, self.xz, self.yz, self.zz,
         )
     }
 
@@ -126,8 +135,12 @@ impl<T: FloatPrecision> SymmetricTensor3<T> {
     #[inline]
     pub fn scale(&self, s: T) -> Self {
         Self::new(
-            self.xx * s, self.yy * s, self.zz * s,
-            self.xy * s, self.xz * s, self.yz * s,
+            self.xx * s,
+            self.yy * s,
+            self.zz * s,
+            self.xy * s,
+            self.xz * s,
+            self.yz * s,
         )
     }
 }
@@ -185,9 +198,6 @@ mod tests {
     #[test]
     fn test_memory_savings() {
         // Symmetric tensor uses 6 components vs 9 for full matrix = 33% savings
-        assert_eq!(
-            std::mem::size_of::<ST>(),
-            6 * std::mem::size_of::<f64>()
-        );
+        assert_eq!(std::mem::size_of::<ST>(), 6 * std::mem::size_of::<f64>());
     }
 }
