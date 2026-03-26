@@ -1,6 +1,10 @@
 # Rust build artifacts
 aerocore/target/
 
+# Simulation output files (generated at runtime)
+outputs/
+**/outputs/
+
 # Prerequisites
 *.d
 
