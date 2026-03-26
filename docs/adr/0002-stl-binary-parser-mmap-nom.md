@@ -52,8 +52,9 @@ Both crates will be added to `aerocore_core` as regular dependencies (planned fo
   file size (the OS pages in only the accessed regions).
 - **Positive:** `nom` combinators are unit-testable with synthetic byte
   buffers without touching the file system.
-- **Neutral:** `memmap2` introduces one `unsafe` block in `load_stl`.  This is
-  documented and reviewed at every PR that modifies I/O code.
+- **Neutral:** When `memmap2`-based I/O is introduced, any required `unsafe`
+  will be confined to a small, well-documented I/O adapter and reviewed on every
+  PR that modifies it.
 - **Watch-out:** On Windows, a memory-mapped file cannot be deleted or
   truncated while the map is open.  Tests must drop the `Mmap` before cleanup
   (use `drop(mmap)` explicitly or rely on scope).
