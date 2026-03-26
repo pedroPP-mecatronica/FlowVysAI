@@ -139,5 +139,5 @@ fn run_stability_test() {
     );
 
     println!();
-    println!("Próximo passo: Sprint S4 - is_boundary bounce-back ativo.");
+    println!("Próximo passo: experimente diferentes configurações de domínio e viscosidade.");
 }
