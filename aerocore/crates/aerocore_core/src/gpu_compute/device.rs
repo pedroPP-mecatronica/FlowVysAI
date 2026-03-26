@@ -49,8 +49,14 @@ impl std::fmt::Display for GpuError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::NoDeviceFound => write!(f, "No GPU device found"),
-            Self::OutOfMemory { requested, available } =>
-                write!(f, "GPU out of memory: requested {} bytes, {} available", requested, available),
+            Self::OutOfMemory {
+                requested,
+                available,
+            } => write!(
+                f,
+                "GPU out of memory: requested {} bytes, {} available",
+                requested, available
+            ),
             Self::KernelNotFound(name) => write!(f, "Kernel not found: {}", name),
             Self::CompilationError(msg) => write!(f, "Shader compilation error: {}", msg),
             Self::DriverError(msg) => write!(f, "GPU driver error: {}", msg),
@@ -68,7 +74,11 @@ pub trait GpuComputeBackend: Send + Sync {
     fn init(&mut self) -> Result<GpuDeviceInfo, GpuError>;
 
     /// Allocates a buffer on the GPU (VRAM).
-    fn allocate_buffer(&mut self, size_bytes: usize, label: &str) -> Result<GpuBufferHandle, GpuError>;
+    fn allocate_buffer(
+        &mut self,
+        size_bytes: usize,
+        label: &str,
+    ) -> Result<GpuBufferHandle, GpuError>;
 
     /// Copies data from host (RAM) to device (VRAM).
     fn upload(&self, handle: &GpuBufferHandle, data: &[u8]) -> Result<(), GpuError>;
@@ -133,7 +143,11 @@ impl GpuComputeBackend for CpuFallbackBackend {
         Ok(self.info.clone())
     }
 
-    fn allocate_buffer(&mut self, size_bytes: usize, _label: &str) -> Result<GpuBufferHandle, GpuError> {
+    fn allocate_buffer(
+        &mut self,
+        size_bytes: usize,
+        _label: &str,
+    ) -> Result<GpuBufferHandle, GpuError> {
         let handle = self.next_handle;
         self.next_handle += 1;
         self.buffers.insert(handle, vec![0u8; size_bytes]);
@@ -146,7 +160,10 @@ impl GpuComputeBackend for CpuFallbackBackend {
             let _ = data;
             Ok(())
         } else {
-            Err(GpuError::DriverError(format!("Invalid handle: {}", handle.0)))
+            Err(GpuError::DriverError(format!(
+                "Invalid handle: {}",
+                handle.0
+            )))
         }
     }
 
@@ -156,7 +173,10 @@ impl GpuComputeBackend for CpuFallbackBackend {
             output[..len].copy_from_slice(&buf[..len]);
             Ok(())
         } else {
-            Err(GpuError::DriverError(format!("Invalid handle: {}", handle.0)))
+            Err(GpuError::DriverError(format!(
+                "Invalid handle: {}",
+                handle.0
+            )))
         }
     }
 
@@ -202,7 +222,9 @@ mod tests {
         let mut output = vec![0u8; 1024];
         backend.download(&handle, &mut output).unwrap();
 
-        backend.dispatch_kernel("test_kernel", [1, 1, 1], &[handle]).unwrap();
+        backend
+            .dispatch_kernel("test_kernel", [1, 1, 1], &[handle])
+            .unwrap();
         backend.sync().unwrap();
         backend.free_buffer(handle).unwrap();
     }

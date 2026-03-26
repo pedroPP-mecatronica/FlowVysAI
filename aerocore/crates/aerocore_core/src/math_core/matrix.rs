@@ -7,7 +7,7 @@
 
 use crate::math_core::precision::FloatPrecision;
 use crate::math_core::vector::Vec3;
-use std::ops::{Mul, Add};
+use std::ops::{Add, Mul};
 
 /// 3×3 matrix stored in row-major order.
 ///
@@ -24,11 +24,7 @@ impl<T: FloatPrecision> Mat3x3<T> {
     /// Creates a matrix from 9 elements in row-major order.
     #[inline]
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        m00: T, m01: T, m02: T,
-        m10: T, m11: T, m12: T,
-        m20: T, m21: T, m22: T,
-    ) -> Self {
+    pub fn new(m00: T, m01: T, m02: T, m10: T, m11: T, m12: T, m20: T, m21: T, m22: T) -> Self {
         Self {
             data: [m00, m01, m02, m10, m11, m12, m20, m21, m22],
         }
@@ -38,18 +34,22 @@ impl<T: FloatPrecision> Mat3x3<T> {
     #[inline]
     pub fn identity() -> Self {
         Self::new(
-            T::ONE,  T::ZERO, T::ZERO,
-            T::ZERO, T::ONE,  T::ZERO,
-            T::ZERO, T::ZERO, T::ONE,
+            T::ONE,
+            T::ZERO,
+            T::ZERO,
+            T::ZERO,
+            T::ONE,
+            T::ZERO,
+            T::ZERO,
+            T::ZERO,
+            T::ONE,
         )
     }
 
     /// Zero matrix.
     #[inline]
     pub fn zero() -> Self {
-        Self {
-            data: [T::ZERO; 9],
-        }
+        Self { data: [T::ZERO; 9] }
     }
 
     /// Access element at (row, col), zero-indexed.
@@ -78,9 +78,15 @@ impl<T: FloatPrecision> Mat3x3<T> {
     #[inline]
     pub fn transpose(&self) -> Self {
         Self::new(
-            self.at(0, 0), self.at(1, 0), self.at(2, 0),
-            self.at(0, 1), self.at(1, 1), self.at(2, 1),
-            self.at(0, 2), self.at(1, 2), self.at(2, 2),
+            self.at(0, 0),
+            self.at(1, 0),
+            self.at(2, 0),
+            self.at(0, 1),
+            self.at(1, 1),
+            self.at(2, 1),
+            self.at(0, 2),
+            self.at(1, 2),
+            self.at(2, 2),
         )
     }
 
@@ -213,11 +219,7 @@ mod tests {
 
     #[test]
     fn test_mat3x3_inverse() {
-        let m = M3::new(
-            1.0, 2.0, 3.0,
-            0.0, 1.0, 4.0,
-            5.0, 6.0, 0.0,
-        );
+        let m = M3::new(1.0, 2.0, 3.0, 0.0, 1.0, 4.0, 5.0, 6.0, 0.0);
 
         let inv = m.inverse().expect("Matrix should be invertible");
         let product = m * inv;
@@ -228,7 +230,9 @@ mod tests {
             assert!(
                 (product.data[i] - identity.data[i]).abs() < 1e-10,
                 "Element {} differs: {} vs {}",
-                i, product.data[i], identity.data[i]
+                i,
+                product.data[i],
+                identity.data[i]
             );
         }
     }
@@ -236,8 +240,7 @@ mod tests {
     #[test]
     fn test_singular_matrix_no_inverse() {
         let m = M3::new(
-            1.0, 2.0, 3.0,
-            2.0, 4.0, 6.0, // Row 2 = 2 * Row 1
+            1.0, 2.0, 3.0, 2.0, 4.0, 6.0, // Row 2 = 2 * Row 1
             0.0, 0.0, 0.0,
         );
         assert!(m.inverse().is_none());
@@ -255,11 +258,7 @@ mod tests {
 
     #[test]
     fn test_transpose() {
-        let m = M3::new(
-            1.0, 2.0, 3.0,
-            4.0, 5.0, 6.0,
-            7.0, 8.0, 9.0,
-        );
+        let m = M3::new(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
         let t = m.transpose();
         assert!((t.at(0, 1) - 4.0).abs() < f64::EPSILON);
         assert!((t.at(1, 0) - 2.0).abs() < f64::EPSILON);
@@ -267,11 +266,7 @@ mod tests {
 
     #[test]
     fn test_determinant() {
-        let m = M3::new(
-            6.0, 1.0, 1.0,
-            4.0, -2.0, 5.0,
-            2.0, 8.0, 7.0,
-        );
+        let m = M3::new(6.0, 1.0, 1.0, 4.0, -2.0, 5.0, 2.0, 8.0, 7.0);
         // det = 6*(-2*7 - 5*8) - 1*(4*7 - 5*2) + 1*(4*8 - (-2)*2)
         //     = 6*(-14-40) - 1*(28-10) + 1*(32+4)
         //     = 6*(-54) - 18 + 36 = -324 - 18 + 36 = -306

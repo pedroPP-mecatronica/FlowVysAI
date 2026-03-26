@@ -7,7 +7,7 @@
 //! - Implements `Copy`, `Clone`, basic arithmetic ops
 
 use crate::math_core::precision::FloatPrecision;
-use std::ops::{Add, Sub, Mul, Neg, AddAssign, SubAssign, MulAssign};
+use std::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 /// 3D vector: velocity, position, force, gradient, etc.
 #[derive(Debug, Clone, Copy, PartialEq)]

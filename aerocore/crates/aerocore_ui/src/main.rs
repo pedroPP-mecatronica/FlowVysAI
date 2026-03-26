@@ -39,7 +39,13 @@ fn run_benchmark() {
     println!("║     AeroCore LBM Benchmark (--bench)         ║");
     println!("╚══════════════════════════════════════════════╝");
     println!();
-    println!("[i] Grid       : {}×{}×{} ({} cells)", nx, ny, nz, nx * ny * nz);
+    println!(
+        "[i] Grid       : {}×{}×{} ({} cells)",
+        nx,
+        ny,
+        nz,
+        nx * ny * nz
+    );
     println!("[i] Steps      : {}", steps);
     println!("[i] Viscosity  : {}", viscosity);
     println!();
@@ -133,5 +139,5 @@ fn run_stability_test() {
     );
 
     println!();
-    println!("Próximo passo: Sprint S4 - is_boundary bounce-back ativo.");
+    println!("Próximo passo: experimente diferentes configurações de domínio e viscosidade.");
 }

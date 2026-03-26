@@ -10,6 +10,6 @@
 //! This module contains placeholder types. Implementation is scheduled
 //! for Phase 3 — Advanced Aero (Sprint S9).
 
-pub mod compressible;
 pub mod boundary;
+pub mod compressible;
 pub mod turbulence;

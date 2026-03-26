@@ -59,12 +59,10 @@ fn lid_driven_cavity_energy_and_mass() {
 
     // ── run with lid boundary ─────────────────────────────────────────────────
     let mut kinetic_energy_early = 0.0_f64;
-    let mut kinetic_energy_late  = 0.0_f64;
+    let mut kinetic_energy_late = 0.0_f64;
 
     for step in 0..ITERATIONS {
-        solver
-            .step_with_lid(U_LID)
-            .expect("LBM step failed");
+        solver.step_with_lid(U_LID).expect("LBM step failed");
 
         if step == 50 {
             kinetic_energy_early = solver.total_kinetic_energy();

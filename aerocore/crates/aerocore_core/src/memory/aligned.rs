@@ -39,7 +39,10 @@ impl<T: Copy, const ALIGN: usize> AlignedVec<T, ALIGN> {
     /// Panics if the allocation fails or if `ALIGN` is not a power of two.
     pub fn new(capacity: usize, value: T) -> Self {
         assert!(ALIGN.is_power_of_two(), "Alignment must be power of two");
-        assert!(ALIGN >= std::mem::align_of::<T>(), "Alignment must be >= natural alignment of T");
+        assert!(
+            ALIGN >= std::mem::align_of::<T>(),
+            "Alignment must be >= natural alignment of T"
+        );
 
         if capacity == 0 {
             return Self {
@@ -91,8 +94,7 @@ impl<T: Copy, const ALIGN: usize> AlignedVec<T, ALIGN> {
     fn make_layout(capacity: usize) -> Layout {
         let size = capacity * std::mem::size_of::<T>();
         let align = ALIGN.max(std::mem::align_of::<T>());
-        Layout::from_size_align(size, align)
-            .expect("Invalid layout for AlignedVec")
+        Layout::from_size_align(size, align).expect("Invalid layout for AlignedVec")
     }
 
     /// Returns a raw pointer to the underlying data (for SIMD / GPU upload).

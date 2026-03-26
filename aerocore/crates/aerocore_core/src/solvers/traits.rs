@@ -21,10 +21,10 @@ pub struct SolverConfig {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)] // Adicionado Default
 #[repr(C)]
-pub enum PrecisionMode { 
+pub enum PrecisionMode {
     #[default]
-    FP64, 
-    FP32 
+    FP64,
+    FP32,
 }
 
 #[derive(Debug)]
@@ -36,7 +36,7 @@ pub enum SolverError {
 }
 
 /// Contrato principal que todo solver deve implementar.
-pub trait Solver<'a>: Send + Sync { 
+pub trait Solver<'a>: Send + Sync {
     fn init(&mut self, config: &SolverConfig, arena: &'a SimArena) -> Result<(), SolverError>;
     fn step(&mut self) -> Result<StepResult, SolverError>;
     fn snapshot_field_data(&self, output: &mut FieldDataBuffer);

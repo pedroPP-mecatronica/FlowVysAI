@@ -1,8 +1,8 @@
 //! Memory subsystem benchmarks — validates KR 1.1 allocation performance.
 
-use criterion::{criterion_group, criterion_main, Criterion, black_box};
 use aerocore_core::memory::arena::SimArena;
 use aerocore_core::memory::pool::ObjectPool;
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 fn bench_arena_alloc(c: &mut Criterion) {
     let arena = SimArena::new(1024 * 1024 * 100); // 100 MB
