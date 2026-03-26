@@ -34,7 +34,7 @@ The binary STL parser uses:
 ASCII STL is handled by a separate code path using standard `str` scanning,
 detected by the `solid` prefix.
 
-Both crates are added to `aerocore_core` as regular dependencies.
+Both crates will be added to `aerocore_core` as regular dependencies (planned for Sprint S2).
 
 ## Alternatives Considered
 
