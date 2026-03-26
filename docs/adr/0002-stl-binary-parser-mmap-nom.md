@@ -20,21 +20,21 @@ Requirements:
 
 ## Decision
 
-The binary STL parser uses:
+The binary STL parser will be implemented in Sprint S2 using:
 
 - **[`memmap2`](https://crates.io/crates/memmap2)** for memory-mapped file
   I/O.  `memmap2` is the maintained fork of `memmap` and is cross-platform.
   It is `unsafe` internally (mapping memory is inherently unsafe), but the API
   is well-audited and widely used.
 - **[`nom`](https://crates.io/crates/nom)** for zero-copy byte-slice parsing.
-  `nom` combinators (`le_u32`, `le_f32`, `count`) parse the 84-byte header and
-  triangle records directly from the mapped slice without any intermediate
+  `nom` combinators (`le_u32`, `le_f32`, `count`) will parse the 84-byte header
+  and triangle records directly from the mapped slice without any intermediate
   allocation.
 
-ASCII STL is handled by a separate code path using standard `str` scanning,
-detected by the `solid` prefix.
+ASCII STL will continue to be handled by a separate code path using standard
+`str` scanning, detected by the `solid` prefix.
 
-Both crates will be added to `aerocore_core` as regular dependencies (planned for Sprint S2).
+Both crates will be added to `aerocore_core` as regular dependencies in Sprint S2.
 
 ## Alternatives Considered
 
