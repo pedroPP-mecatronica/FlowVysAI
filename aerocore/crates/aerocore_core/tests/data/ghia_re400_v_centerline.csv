@@ -1,0 +1,23 @@
+# v-velocity along the horizontal centreline (y = 0.5) for Re = 400.
+# Source: Ghia, Ghia & Shin (1982), J. Comput. Phys. 48(3), Table II.
+# Note: the value at x=0.9063 (-0.23827) may contain a typographic error in the
+# original publication; it is retained here for completeness.
+# Columns: x (normalised 0-1), v (normalised by U_lid).
+x,v
+0.000000,0.000000
+0.062500,0.183600
+0.070300,0.197130
+0.078100,0.209200
+0.093800,0.229650
+0.156300,0.281240
+0.226600,0.302030
+0.234400,0.301740
+0.500000,0.051860
+0.804700,-0.385980
+0.859400,-0.449930
+0.906300,-0.238270
+0.945300,-0.228470
+0.953100,-0.192540
+0.960900,-0.156630
+0.968800,-0.121460
+1.000000,0.000000
